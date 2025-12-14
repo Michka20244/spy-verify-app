@@ -182,3 +182,4 @@ if search_btn:
         except Exception as e:
             st.error(f"An error occurred: {e}")
 
+
