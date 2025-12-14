@@ -34,16 +34,44 @@ with st.sidebar:
     st.header("🔑 Configuration")
     api_key = st.text_input("Enter SerpApi Key", type="password", help="Get your key from serpapi.com")
     
-    st.markdown("---")
-    
-    # Pro Simulation Toggle
-    st.header("💎 Subscription Status")
-    is_pro = st.checkbox("✅ Simulate PRO Subscription", value=False)
-    
-    if is_pro:
-        st.success("User is: **PREMIUM**")
-    else:
-        st.info("User is: **FREE TIER**")
+    st.sidebar.markdown("---")
+st.sidebar.markdown("### 👑 Upgrade to PRO")
+st.sidebar.markdown(
+    """
+    Unlock competitor links, prices, and CSV Export!
+    The Monthly Subscription is only $19.
+    """
+)
+
+# الرابط الفعلي لزر PayPal الذي أنشأته
+paypal_link = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XH3ZKY7F6RSJJ" 
+
+# عرض الزر الذي يفتح صفحة PayPal في متصفح جديد:
+st.sidebar.markdown(f"[💳 Subscribe for $19/mo]({paypal_link})") 
+
+# --- قسم معلومات التواصل ---
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📞 Contact Us")
+st.sidebar.markdown("📧 Email: **luxurylifeinusa@gmail.com** (Working Email)")
+st.sidebar.markdown("📱 WhatsApp/Call: **+213779921126**")
+st.sidebar.markdown("---")
+
+# نظام التحقق من الاشتراك عبر الكود السري
+# الكود السري الرسمي للتطبيق هو Mishka@*2026
+secret_premium_code = "Mishka@*2026"
+secret_code_input = st.sidebar.text_input("Enter Access Code (For Premium Users)", type="password")
+
+is_premium = (secret_code_input == secret_premium_code)
+
+if is_premium:
+    st.sidebar.success("User is: PREMIUM (Access Granted)")
+elif secret_code_input != "":
+    st.sidebar.error("Invalid Code. Please check or subscribe.")
+else:
+    st.sidebar.error("User is: FREE TIER")
+
+# -----------------------------------------------------------------------
 
 # --- Main Interface ---
 st.title("Spy & Verify 🕵️‍♂️")
@@ -153,3 +181,4 @@ if search_btn:
 
         except Exception as e:
             st.error(f"An error occurred: {e}")
+
