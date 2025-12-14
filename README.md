@@ -62,7 +62,15 @@ Interested in exploring the code or contributing? Follow these steps to run the 
 4.  **Configuration:** Enter your SerpApi Key in the sidebar input field.
 
 ---
+---
+## ✉️ Get in Touch
 
+For partnership or support inquiries:
+
+* **Email:** luxurylifeinusa@gmail.com
+* **WhatsApp/Call:** +213779921126
+
+---
 ## ⚠️ Disclaimer
 This tool is provided for educational, proof-of-concept, and market research purposes only. The accuracy of the saturation gauge relies on the returned organic search results.
 
