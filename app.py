@@ -19,7 +19,7 @@ if 'trial_used' not in st.session_state:
     st.session_state['trial_used'] = False
 if 'is_premium' not in st.session_state:
     st.session_state['is_premium'] = False
-if 'serpapi_key' not in st.session_state: # تخزين مفتاح SerpApi
+if 'serpapi_key' not in st.session_state:
     st.session_state['serpapi_key'] = ''
 
 
@@ -50,10 +50,10 @@ if access_code_input == secret_premium_code:
 elif access_code_input == trial_code and not st.session_state['trial_used']:
     st.session_state['is_premium'] = True
     st.sidebar.warning("This is your FREE TRIAL. Results will be locked after next use!")
-else:
     # لا نغير حالة is_premium إذا لم يكن هناك كود صحيح
-    if access_code_input and access_code_input != secret_premium_code:
-        st.sidebar.error("Invalid Code or Trial already used.")
+elif access_code_input and access_code_input != secret_premium_code:
+    st.session_state['is_premium'] = False
+    st.sidebar.error("Invalid Code or Trial already used.")
 
 # 3. عرض الحالة
 if st.session_state['is_premium']:
@@ -105,14 +105,12 @@ selected_regions = st.multiselect(
 search_button = st.button('🚀 Spy Now')
 
 # 5. منطقة إدخال مفتاح SerpApi (لضمان وجوده في كل عملية)
-# تخزين المفتاح في حالة الجلسة
 serpapi_key_input = st.text_input(
     "Enter SerpApi Key", 
     value=st.session_state['serpapi_key'], 
     type="password", 
     help="We store this key only for the current session. Get yours from SerpApi."
 )
-# تحديث حالة الجلسة
 if serpapi_key_input:
     st.session_state['serpapi_key'] = serpapi_key_input
 
@@ -124,7 +122,6 @@ def run_search(product, platform_choice, api_key, regions_list):
     if not regions_list:
         return None, "Please select at least one region to search."
 
-    # تحديد معامل البحث بناءً على اختيار المنصة (تحسين بحث TikTok)
     search_query = product
     if platform_choice == "Shopify Stores (Competitor Count)":
         search_query = f"site:myshopify.com {product}"
@@ -133,7 +130,6 @@ def run_search(product, platform_choice, api_key, regions_list):
     elif platform_choice == "Facebook/Instagram Ads (Active Campaigns)":
         search_query = f"facebook.com/ads/library OR instagram {product}"
     elif platform_choice == "TikTok/YouTube Virality (Trend Check)":
-        # بحث أوسع وأكثر فاعلية 
         search_query = f"{product} viral review (site:tiktok.com OR site:youtube.com)" 
 
     all_results = []
@@ -166,11 +162,13 @@ def run_search(product, platform_choice, api_key, regions_list):
             st.error(f"API Error for {region_name}: {e}")
             
     if all_results:
+        # هنا لا نقوم بإزالة التكرارات لضمان ظهور كل الروابط المكتشفة
         df_all = pd.DataFrame(all_results)
-        df_unique = df_all.drop_duplicates(subset=['link'], keep='first')
-        return df_unique.to_dict('records'), None
+        # إضافة عمود "Visit" بصفته عمود رابط قابل للنقر مباشرة
+        df_all['Visit'] = df_all['link'].apply(lambda x: st.link_button(f"Visit: {x[:30]}...", x))
+        return df_all.to_dict('records'), None
     else:
-        return None, "No unique results found across the selected regions."
+        return None, "No results found across the selected regions."
 
 
 # 7. معالجة النتائج
@@ -178,7 +176,9 @@ if search_button and product_name and selected_regions:
     # 7.1. معالجة الاستخدام التجريبي لمرة واحدة
     if access_code_input == trial_code and not st.session_state['trial_used']:
         st.session_state['trial_used'] = True 
-        st.experimental_rerun() 
+        # تحديث الحالة يجب أن يحدث قبل التشغيل
+        # st.experimental_rerun() 
+        pass # نترك الكود يكمل ليُظهر النتائج المجانية للمرة الأولى
 
     # 7.2. جلب النتائج
     st.info(f"🔎 Starting Deep Analysis for: {product_name}...")
@@ -189,39 +189,39 @@ if search_button and product_name and selected_regions:
     elif results:
         df = pd.DataFrame(results)
 
-        # 7.3. تحليل التشبع بالألوان (Shopify)
-        competitor_count = len(df[df['link'].astype(str).str.contains('myshopify.com')]) if platform == "Shopify Stores (Competitor Count)" else len(df)
-        
-        st.markdown("---")
-        st.subheader("📊 Market Analysis:")
-
+        # 7.3. تحليل التشبع بالألوان (Shopify) - الحل لمشكلة عدم الظهور
         if platform == "Shopify Stores (Competitor Count)":
-            # تطبيق الألوان الثلاثة المتفق عليها
-            if competitor_count <= 10:
-                saturation = "🟢 LOW COMPETITION (High Potential)"
-                st.success(f"Saturation Level: **{saturation}**")
-            elif competitor_count <= 30:
-                saturation = "🟡 MEDIUM COMPETITION (Moderate Risk)"
-                st.warning(f"Saturation Level: **{saturation}**")
-            else:
-                saturation = "🔴 HIGH COMPETITION (High Risk - Avoid)"
-                st.error(f"Saturation Level: **{saturation}**")
-            st.markdown(f"**Found:** {competitor_count} unique active competitors across selected regions.")
+            df_shopify = df[df['link'].astype(str).str.contains('myshopify.com')]
+            competitor_count = len(df_shopify.drop_duplicates(subset=['link'], keep='first')) # نعد المتاجر الفريدة فقط هنا
+            
+            st.markdown("---")
+            st.subheader("📊 Market Analysis:")
 
+            col1, col2 = st.columns([1, 4])
+            with col1:
+                st.markdown(f"**Found (Unique):** {competitor_count}")
+            with col2:
+                if competitor_count <= 10:
+                    saturation = "🟢 LOW COMPETITION (High Potential)"
+                    st.success(f"Saturation Level: **{saturation}**")
+                elif competitor_count <= 30:
+                    saturation = "🟡 MEDIUM COMPETITION (Moderate Risk)"
+                    st.warning(f"Saturation Level: **{saturation}**")
+                else:
+                    saturation = "🔴 HIGH COMPETITION (High Risk - Avoid)"
+                    st.error(f"Saturation Level: **{saturation}**")
         else:
-             st.info(f"Found {competitor_count} relevant unique links across selected regions.")
-        
-        st.markdown("---")
-        st.subheader("🔗 Deep Competitor List (Clickable Links):")
+             competitor_count = len(df)
+             st.info(f"Found {competitor_count} relevant links across selected regions.")
+             st.markdown("---")
+
+
+        st.subheader("🔗 Deep Competitor List:")
         
         # 7.4. حاجز الاشتراك (Paywall Logic)
         if st.session_state['is_premium']:
-            # إنشاء عمود جديد للروابط القابلة للنقر (الحل لمشكلة الروابط)
-            df['Action Link'] = df['link'].apply(lambda x: f'<a href="{x}" target="_blank">Click to Visit</a>')
-            
-            # عرض النتائج الكاملة للمشتركين (باستخدام st.markdown و unsafe_allow_html)
-            st.markdown(df[['title', 'Action Link', 'region', 'snippet']].to_html(escape=False), unsafe_allow_html=True)
-
+            # عرض النتائج الكاملة للمشتركين
+            st.dataframe(df[['title', 'link', 'region', 'snippet']])
             # زر التحميل
             csv = df[['title', 'link', 'region', 'snippet']].to_csv(index=False).encode('utf-8')
             st.download_button(
@@ -236,11 +236,11 @@ if search_button and product_name and selected_regions:
             # عرض أول 5 نتائج مع إخفاء الروابط
             df_masked = df[['title', 'link', 'region', 'snippet']].head(5).copy()
             df_masked['link'] = df_masked['link'].astype(str).str.replace('https://', 'h**s://').str.replace('.com', '.***').str[:30] + '...'
-            st.code(df_masked.to_markdown(index=False), language='markdown')
-            
+            st.dataframe(df_masked) # نستخدم st.dataframe بدلا من st.code لضمان التنسيق
+
 # 8. إظهار رسالة البداية إذا لم يتم إدخال شيء (الحل لمشكلة التجربة المجانية)
 else:
-    if not product_name and not st.session_state['is_premium']:
+    if not product_name: # لا نحتاج للتأكد من حالة is_premium هنا
         st.markdown("---")
         st.markdown("<h2 style='text-align: center; color: #007bff;'>🎁 إبهار البداية: جرب تحليل PRO مجاناً لمرة واحدة!</h2>", unsafe_allow_html=True)
         st.warning(f"💡 Tip: Enter the Access Code **{trial_code}** in the sidebar to unlock a one-time full analysis!")
